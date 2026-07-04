@@ -1,0 +1,192 @@
+// carchat backend data model — from BUILD-SPEC §6.
+// Dev uses SQLite (zero-install). For production switch provider to "postgresql"
+// and set DATABASE_URL to your Postgres connection string — the models are portable
+// (arrays are stored as JSON strings for SQLite compatibility; see photos/notes).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  provider  String   // "google" | "apple"
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  vehicles      Vehicle[]
+  bookings      Booking[]
+  reviews       Review[]
+  listings      Listing[]
+  showcases     Showcase[]
+  merchants     Merchant[]      @relation("MerchantOwner")
+  sentRequests  PlateRequest[]  @relation("RequestFrom")
+  recvRequests  PlateRequest[]  @relation("RequestTarget")
+  messages      Message[]
+  notifications Notification[]
+  showcaseLikes ShowcaseLike[]
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  plate        String   @unique
+  make         String?
+  model        String?
+  trim         String?
+  allowContact Boolean  @default(false) // off by default per PDPA
+  createdAt    DateTime @default(now())
+}
+
+model Conversation {
+  id         String   @id @default(cuid())
+  type       String   // "merchant" | "plate" | "listing"
+  aUserId    String
+  bUserId    String?
+  merchantId String?
+  listingId  String?
+  anonymous  Boolean  @default(false)
+  lastMsg    String?
+  lastAt     DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  messages Message[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User     @relation(fields: [senderId], references: [id])
+  body           String
+  kind           String   @default("text") // "text" | "image" | "servicecard"
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model PlateRequest {
+  id           String   @id @default(cuid())
+  fromUserId   String
+  fromUser     User     @relation("RequestFrom", fields: [fromUserId], references: [id])
+  targetPlate  String
+  targetUserId String?
+  targetUser   User?    @relation("RequestTarget", fields: [targetUserId], references: [id])
+  body         String
+  status       String   @default("sent") // "sent" | "accepted" | "ignored"
+  createdAt    DateTime @default(now())
+}
+
+model Merchant {
+  id           String   @id @default(cuid())
+  ownerUserId  String?
+  owner        User?    @relation("MerchantOwner", fields: [ownerUserId], references: [id])
+  name         String
+  category     String
+  lat          Float?
+  lng          Float?
+  address      String?
+  rating       Float    @default(0)
+  reviewCount  Int      @default(0)
+  isOpen       Boolean  @default(true)
+  heroUrl      String?
+  createdAt    DateTime @default(now())
+
+  services Service[]
+  bookings Booking[]
+  reviews  Review[]
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  name        String
+  price       Float
+  duration    String?
+  description String?
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id])
+  serviceId   String?
+  plate       String
+  scheduledAt String   // display string "Today · 3:00 PM"
+  price       String
+  status      String   @default("requested") // requested | confirmed | completed | cancelled
+  createdAt   DateTime @default(now())
+
+  reviews Review[]
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id])
+  rating     Int
+  body       String?
+  createdAt  DateTime @default(now())
+}
+
+model Listing {
+  id           String   @id @default(cuid())
+  sellerUserId String
+  seller       User     @relation(fields: [sellerUserId], references: [id])
+  category     String   // care | access | voucher | parts | tyres
+  title        String
+  description  String?
+  price        Float
+  photos       String   @default("[]") // JSON array of urls
+  status       String   @default("active") // active | reserved | sold
+  createdAt    DateTime @default(now())
+}
+
+model Showcase {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  vehicleId String?
+  photoUrl  String?
+  tag       String?
+  caption   String?
+  likeCount Int      @default(0)
+  createdAt DateTime @default(now())
+
+  likes ShowcaseLike[]
+}
+
+model ShowcaseLike {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  showcaseId String
+  showcase   Showcase @relation(fields: [showcaseId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, showcaseId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  refId     String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+}

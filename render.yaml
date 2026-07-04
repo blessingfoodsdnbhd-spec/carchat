@@ -1,0 +1,22 @@
+# Render deploy config for the carchat backend (free tier).
+# This repo's root IS the server. Deploy: push to GitHub → Render → New → Blueprint → pick repo.
+# You still set DATABASE_URL / GOOGLE_CLIENT_IDS / APPLE_CLIENT_ID in the dashboard.
+services:
+  - type: web
+    name: carchat-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run deploy:migrate && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong secret
+      - key: DATABASE_URL
+        sync: false # paste your Neon Postgres URL in the dashboard
+      - key: GOOGLE_CLIENT_IDS
+        sync: false
+      - key: APPLE_CLIENT_ID
+        sync: false
