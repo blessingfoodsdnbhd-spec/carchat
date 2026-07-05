@@ -246,5 +246,10 @@ app.patch("/biz/status", requireAuth, async (req: AuthedRequest, res) => {
   ok(res, { merchant });
 });
 
-const PORT = Number(process.env.PORT || 4000);
-app.listen(PORT, () => console.log(`carchat backend on http://localhost:${PORT}`));
+// Local/dev: listen on a port. On Vercel (serverless) we export the app instead.
+if (!process.env.VERCEL) {
+  const PORT = Number(process.env.PORT || 4000);
+  app.listen(PORT, () => console.log(`carchat backend on http://localhost:${PORT}`));
+}
+
+export default app;
