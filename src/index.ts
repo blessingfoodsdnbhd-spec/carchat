@@ -253,6 +253,12 @@ app.patch("/biz/status", requireAuth, async (req: AuthedRequest, res) => {
   ok(res, { merchant });
 });
 
+// Temporary: surface real error messages (helps diagnose serverless issues).
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ error: String(err?.message || err), stack: err?.stack?.split("\n").slice(0, 3) });
+});
+
 // Local/dev: listen on a port. On Vercel (serverless) we export the app instead.
 if (!process.env.VERCEL) {
   const PORT = Number(process.env.PORT || 4000);
