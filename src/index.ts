@@ -59,6 +59,13 @@ app.post("/auth/dev", async (req, res) => {
   ok(res, { token: signToken(user.id), user });
 });
 
+// Guest login — intentionally public, for the first TestFlight build before
+// Google/Apple sign-in is wired. Returns a token for a shared demo account.
+app.post("/auth/guest", async (_req, res) => {
+  const user = await upsertUser("guest@carchat.my", "Guest", "guest");
+  ok(res, { token: signToken(user.id), user });
+});
+
 app.get("/me", requireAuth, async (req: AuthedRequest, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.userId } });
   ok(res, { user });
