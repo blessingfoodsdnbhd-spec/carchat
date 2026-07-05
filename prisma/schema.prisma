@@ -4,10 +4,9 @@
 // (arrays are stored as JSON strings for SQLite compatibility; see photos/notes).
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider      = "prisma-client-js"
   // "native" for local dev; the rhel target is what Vercel's serverless runtime needs.
-  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
